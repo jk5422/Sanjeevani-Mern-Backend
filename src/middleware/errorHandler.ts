@@ -28,8 +28,7 @@ export const globalErrorHandler = (
         // For MVP clarity, we'll send the issues
         return res.status(statusCode).json({
             status,
-            message,
-            errors: err.errors,
+            errors: err.issues,
         });
     }
     // 3. Handle Unexpected Errors

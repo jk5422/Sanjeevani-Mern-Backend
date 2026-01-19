@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { HttpStatus } from '@/shared/constants';
+import { HttpStatus } from '../shared/constants';
 
 type ApiResponse<T> = {
     status: 'success' | 'fail';

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../modules/access-control/auth.utils';
+import { verifyToken } from '../modules/access-control/utils/auth.utils';
 import { AppError } from '../utils/AppError';
 
 // Extend Express Request to include user
