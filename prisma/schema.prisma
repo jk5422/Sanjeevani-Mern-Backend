@@ -1,0 +1,285 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// 0. Enums
+// -----------------------------------------------------------------------------
+enum RoleType {
+  ADMIN
+  STAFF
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  CARD
+  CREDIT
+}
+
+enum PaymentStatus {
+  COMPLETED
+  PENDING
+  FAILED
+  REFUNDED
+}
+
+enum BillStatus {
+  GENERATED
+  CANCELLED
+}
+
+// -----------------------------------------------------------------------------
+// 1. Geography Masters
+// -----------------------------------------------------------------------------
+model Country {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  isoCode   String   @unique @map("iso_code") @db.Char(2)
+  phoneCode String   @map("phone_code") @db.VarChar(5)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  states State[]
+
+  @@map("countries")
+}
+
+model State {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  countryId Int      @map("country_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  country Country @relation(fields: [countryId], references: [id])
+  cities  City[]
+
+  @@map("states")
+}
+
+model City {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  stateId   Int      @map("state_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  state   State    @relation(fields: [stateId], references: [id])
+  regions Region[]
+  shopees Shopee[]
+
+  @@map("cities")
+}
+
+model Region {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  cityId    Int      @map("city_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  city    City     @relation(fields: [cityId], references: [id])
+  shopees Shopee[]
+
+  @@map("regions")
+}
+
+// -----------------------------------------------------------------------------
+// 2. Organization Masters
+// -----------------------------------------------------------------------------
+model Shopee {
+  id           Int      @id @default(autoincrement())
+  shopeeCode   String   @unique @map("shopee_code") @db.VarChar(20)
+  name         String   @db.VarChar(100)
+  contactNo    String   @map("contact_no") @db.VarChar(15)
+  email        String?  @db.VarChar(100)
+  ownerName    String   @map("owner_name") @db.VarChar(100)
+  ownerContact String   @map("owner_contact") @db.VarChar(15)
+  ownerEmail   String?  @map("owner_email") @db.VarChar(100)
+  address      String   @db.Text
+  gstNo        String?  @map("gst_no") @db.VarChar(15)
+  cin          String?  @map("cin") @db.VarChar(21)
+  pan          String?  @map("pan") @db.VarChar(10)
+  cityId       Int      @map("city_id")
+  regionId     Int      @map("region_id")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  city           City           @relation(fields: [cityId], references: [id])
+  region         Region         @relation(fields: [regionId], references: [id])
+  users          User[]
+  productBatches ProductBatch[]
+  invoices       Invoice[]
+
+  @@map("shopees")
+}
+
+// -----------------------------------------------------------------------------
+// 3. Access Control
+// -----------------------------------------------------------------------------
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        RoleType @unique // Enum: ADMIN, STAFF
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  firstName    String   @map("first_name") @db.VarChar(50)
+  lastName     String?  @map("last_name") @db.VarChar(50)
+  email        String   @unique @db.VarChar(100)
+  mobile       String   @unique @db.VarChar(15)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  roleId       Int      @map("role_id")
+  shopeeId     Int      @map("shopee_id")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  role   Role   @relation(fields: [roleId], references: [id])
+  shopee Shopee @relation(fields: [shopeeId], references: [id])
+
+  invoicesCreated Invoice[]      @relation("Biller")
+  createdAudits   ProductBatch[] @relation("BatchCreator")
+
+  @@map("users")
+}
+
+// -----------------------------------------------------------------------------
+// 4. Business Masters
+// -----------------------------------------------------------------------------
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  mobile    String   @unique @db.VarChar(15)
+  email     String?  @db.VarChar(100)
+  ascplId   String?  @unique @map("ascpl_id") @db.VarChar(50)
+  address   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  invoices Invoice[]
+
+  @@map("customers")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(150)
+  shortName   String?  @map("short_name") @db.VarChar(50)
+  description String?  @db.Text
+  hsnCode     String?  @map("hsn_code") @db.VarChar(10)
+  brand       String?  @db.VarChar(50)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  batches      ProductBatch[]
+  invoiceItems InvoiceItem[]
+
+  @@index([name])
+  @@index([shortName])
+  @@map("products")
+}
+
+// -----------------------------------------------------------------------------
+// 5. Inventory & Pricing
+// -----------------------------------------------------------------------------
+model ProductBatch {
+  id           Int      @id @default(autoincrement())
+  shopeeId     Int      @map("shopee_id")
+  productId    Int      @map("product_id")
+  batchNo      String   @map("batch_no") @db.VarChar(50)
+  expiryDate   DateTime @map("expiry_date") @db.Date
+  mrp          Decimal  @db.Decimal(10, 2)
+  dp           Decimal  @db.Decimal(10, 2)
+  sp           Decimal  @db.Decimal(10, 2)
+  currentStock Int      @default(0) @map("current_stock")
+  createdBy    Int?     @map("created_by") // Audit
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  shopee  Shopee  @relation(fields: [shopeeId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  creator User?   @relation("BatchCreator", fields: [createdBy], references: [id])
+
+  invoiceItems InvoiceItem[]
+
+  @@index([expiryDate]) // FIFO Logic
+  @@map("product_batches")
+}
+
+// -----------------------------------------------------------------------------
+// 6. Billing & Transactions
+// -----------------------------------------------------------------------------
+model Invoice {
+  id                 Int        @id @default(autoincrement())
+  invoiceNo          String     @unique @map("invoice_no") @db.VarChar(50)
+  date               DateTime   @default(now())
+  customerId         Int?       @map("customer_id")
+  referenceAscplId   String?    @map("reference_ascpl_id") @db.VarChar(50)
+  receivingPartyName String     @map("receiving_party_name") @db.VarChar(100)
+  totalAmount        Decimal    @map("total_amount") @db.Decimal(12, 2)
+  totalSp            Decimal    @default(0) @map("total_sp") @db.Decimal(12, 2)
+  paymentMode        String     @default("CASH") @map("payment_mode") @db.VarChar(20)
+  remarks            String?    @db.Text
+  userId             Int        @map("user_id") // Biller
+  shopeeId           Int        @map("shopee_id")
+  status             BillStatus @default(GENERATED)
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  customer Customer?     @relation(fields: [customerId], references: [id])
+  user     User          @relation("Biller", fields: [userId], references: [id])
+  shopee   Shopee        @relation(fields: [shopeeId], references: [id])
+  items    InvoiceItem[]
+  payments Payment[]
+
+  @@index([date])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          Int     @id @default(autoincrement())
+  invoiceId   Int     @map("invoice_id")
+  productId   Int     @map("product_id")
+  batchId     Int     @map("batch_id")
+  quantity    Int
+  snapshotMrp Decimal @map("snapshot_mrp") @db.Decimal(10, 2)
+  snapshotDp  Decimal @map("snapshot_dp") @db.Decimal(10, 2)
+  snapshotSp  Decimal @map("snapshot_sp") @db.Decimal(10, 2)
+  lineTotal   Decimal @map("line_total") @db.Decimal(12, 2)
+  lineSp      Decimal @map("line_sp") @db.Decimal(12, 2)
+
+  invoice Invoice      @relation(fields: [invoiceId], references: [id])
+  product Product      @relation(fields: [productId], references: [id])
+  batch   ProductBatch @relation(fields: [batchId], references: [id])
+
+  @@map("invoice_items")
+}
+
+model Payment {
+  id        Int           @id @default(autoincrement())
+  invoiceId Int           @map("invoice_id")
+  amount    Decimal       @db.Decimal(12, 2)
+  mode      PaymentMode
+  refNo     String?       @map("ref_no") @db.VarChar(50)
+  status    PaymentStatus @default(COMPLETED)
+  date      DateTime      @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@map("payments")
+}

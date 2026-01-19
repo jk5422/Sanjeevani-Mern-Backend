@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", // Node 14+ support
+    "module": "commonjs", // Standard for Node.js
+    "lib": [
+      "ES2020"
+    ],
+    "outDir": "./dist", // Build output
+    "rootDir": "./src", // Source root
+    "strict": true, // Enable ALL strict type checks (Crucial for ERP)
+    "noImplicitAny": true, // Prevent loose typing
+    "strictNullChecks": true, // Stop null pointer errors
+    "moduleResolution": "node",
+    "baseUrl": ".", // For path aliases
+    "paths": {
+      "@/*": [
+        "src/*"
+      ] // cleaner imports like @/modules/auth
+    },
+    "esModuleInterop": true, // Interop with CommonJS modules
+    "experimentalDecorators": true, // Required for some ORM patterns
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true, // Speed up compilation
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

@@ -1,0 +1,52 @@
+import winston from 'winston';
+import { config } from '../config/env';
+
+const levels = {
+    error: 0,
+    warn: 1,
+    info: 2,
+    http: 3,
+    debug: 4,
+};
+
+const colors = {
+    error: 'red',
+    warn: 'yellow',
+    info: 'green',
+    http: 'magenta',
+    debug: 'white',
+};
+
+winston.addColors(colors);
+
+const format = winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
+    config.NODE_ENV === 'development'
+        ? winston.format.colorize({ all: true })
+        : winston.format.uncolorize(),
+    winston.format.printf(
+        (info) => `${info.timestamp} ${info.level}: ${info.message}`
+    )
+);
+
+const transports = [
+    // Console: Always active
+    new winston.transports.Console(),
+    // File: Only in production or if needed
+    ...(config.NODE_ENV === 'production'
+        ? [
+            new winston.transports.File({
+                filename: 'logs/error.log',
+                level: 'error',
+            }),
+            new winston.transports.File({ filename: 'logs/all.log' }),
+        ]
+        : []),
+];
+
+export const Logger = winston.createLogger({
+    level: config.NODE_ENV === 'development' ? 'debug' : 'warn',
+    levels,
+    format,
+    transports,
+});
